@@ -84,4 +84,111 @@ q = from t in "tracks",
     where: t.duration > 900,
     select: %{album: a.title, track: t.title, artist: ar.name}
 
-# Section --> Composing Queries [pagina 32 no livro]
+# Section --> Composing Queries
+
+# Miles Albums Query
+miles_albums = from a in "albums",
+  join: ar in "artists",
+  on: ar.id == a.artist_id,
+  where: ar.name == "Miles Davis",
+  select: a.title
+
+# Miles Distinct Tracks Query
+miles_tracks = from a in "albums",
+  join: ar in "artists",
+  on: ar.id == a.artist_id,
+  join: t in "tracks",
+  on: t.album_id == a.id,
+  where: ar.name == "Miles Davis",
+  distinct: true,
+  select: a.title
+
+# Miles Albums Query
+
+albums_by_miles = from a in "albums",
+  join: ar in "artists",
+  on: ar.id == a.artist_id,
+  where: ar.name == "Miles Davis"
+
+album_query = from a in albums_by_miles, select: a.title
+
+track_query = from a in albums_by_miles,
+  join: t in "tracks", on: t.album_id == a.id,
+  select: t.title
+
+# Working with Named Bindings
+
+albums_by_miles = from a in "albums", as: :albums,
+  join: ar in "artists", as: :artists,
+  on: a.artist_id == ar.id,
+  where: ar.name == "Miles Davis"
+
+albums_query = from [albums: a] in albums_by_miles
+  select: a.title
+
+album_query = from [artists: ar, albums: a] in albums_by_miles,
+  select: [a.title, ar.name]
+
+
+  defmodule MusicDB.MyQueries do
+    import Ecto.Query
+
+    def albums_by_artist(artist_name) do
+      from(a in "albums",
+        join: ar in "artists",
+        on: ar.id == a.artist_id,
+        where: ar.name == ^artist_name
+      )
+    end
+
+    def with_tracks_longer_than(query, duration) do
+      from(a in query,
+        join: t in "tracks",
+        on: t.album_id == a.id,
+        where: t.duration > ^duration,
+        distinct: true
+      )
+    end
+
+    def by_artist(query, artist_name) do
+      from(a in query,
+        join: ar in "artists",
+        on: a.artist_id == ar.id,
+        where: ar.name == ^artist_name
+      )
+    end
+
+    def title_only(query) do
+      from(a in query, select: a.title)
+    end
+  end
+
+# Combining Queries with or_where - page 38
+
+albums_by_miles = from a in "albums",
+  join: ar in "artists", on: ar.id == a.artist_id,
+  where: ar.name == "Miles Davis"
+
+q = from [a, ar] in albums_by_miles,
+  where: ar.name == "Bobby Hutcherson",
+  select: a.title
+
+"SELECT a0.\"title\" FROM \"albums\" AS a0 INNER JOIN \"artists\" AS a1 ON a1.\"id\" = a0.\"artist_id\" WHERE (a1.\"name\" = 'Miles Davis') AND (a1.\"name\" = 'Bobby Hutcherson')"
+
+
+albums_by_miles = from a in "albums",
+  join: ar in "artists", on: ar.id == a.artist_id,
+  where: ar.name == "Miles Davis"
+
+q = from [a, ar] in albums_by_miles,
+  or_where: ar.name == "Bobby Hutcherson",
+  select: a.title
+
+  "SELECT a0.\"title\" FROM \"albums\" AS a0 INNER JOIN \"artists\" AS a1 ON a1.\"id\" = a0.\"artist_id\" WHERE ((a1.\"name\" = 'Miles Davis')) OR (a1.\"name\" = 'Bobby Hutcherson')"
+
+# Section --> Other Ways to Use Queries
+
+from(t in "tracks", where: t.title == "Autumn Leaves")
+|> Repo.update_all(set: [title: "Autumn Leaves"])
+
+from(t in "tracks", where: t.title == "Autumn Leaves") |> Repo.delete_all()

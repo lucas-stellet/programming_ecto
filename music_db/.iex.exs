@@ -16,7 +16,8 @@ alias MusicDB.{
   AlbumWithEmbeds,
   ArtistEmbed,
   TrackEmbed,
-  Note
+  Note,
+  MyQueries
 }
 
 import_if_available Ecto.Query
